@@ -1,0 +1,55 @@
+from social_hub.domain.value_objects.capabilities import PlatformCapabilities
+from social_hub.domain.value_objects.platform_type import PlatformType
+
+PLATFORM_CAPABILITIES: dict[PlatformType, PlatformCapabilities] = {
+    PlatformType.TELEGRAM: PlatformCapabilities(
+        can_publish=True,
+        can_edit=True,
+        can_delete=True,
+        supports_buttons=True,
+        supports_callback=True,
+        supports_media_album=True,
+        max_buttons_per_row=3,
+        max_callback_data_bytes=64,
+    ),
+    PlatformType.BALE: PlatformCapabilities(
+        can_publish=True,
+        can_edit=True,
+        can_delete=True,
+        supports_buttons=True,
+        supports_callback=True,
+        supports_media_album=False,
+        max_buttons_per_row=3,
+        max_callback_data_bytes=64,
+    ),
+    PlatformType.INSTAGRAM: PlatformCapabilities(
+        can_publish=True,
+        can_edit=False,
+        can_delete=True,
+        supports_buttons=False,
+        supports_callback=False,
+        supports_media_album=True,
+        max_buttons_per_row=0,
+        max_callback_data_bytes=0,
+    ),
+    PlatformType.WHATSAPP: PlatformCapabilities(
+        can_publish=True,
+        can_edit=False,
+        can_delete=False,
+        supports_buttons=True,
+        supports_callback=False,
+        supports_media_album=False,
+        max_buttons_per_row=3,
+        max_callback_data_bytes=0,
+    ),
+    PlatformType.TWITTER: PlatformCapabilities(
+        can_publish=True,
+        can_edit=False,
+        can_delete=True,
+        supports_buttons=False,
+        supports_callback=False,
+        supports_media_album=True,
+        max_buttons_per_row=0,
+        max_callback_data_bytes=0,
+    ),
+}

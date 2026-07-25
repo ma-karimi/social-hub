@@ -1,0 +1,565 @@
+{
+  "info": {
+    "_postman_id": "social-hub-api-v1",
+    "name": "SocialHub API",
+    "description": "Multi-Tenant Social Publishing Platform API.\n\nBase path: `/api/v1`\n\nMost endpoints require the `X-API-Key` header (tenant API key).\nTenant management endpoints are unauthenticated (admin-only in production).\n\nImport the companion environment file `SocialHub.postman_environment.json` and set `base_url` + `api_key`.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000"
+    },
+    {
+      "key": "api_key",
+      "value": ""
+    },
+    {
+      "key": "tenant_id",
+      "value": ""
+    },
+    {
+      "key": "connection_id",
+      "value": ""
+    },
+    {
+      "key": "post_id",
+      "value": ""
+    },
+    {
+      "key": "webhook_secret",
+      "value": ""
+    }
+  ],
+  "auth": {
+    "type": "apikey",
+    "apikey": [
+      {
+        "key": "key",
+        "value": "X-API-Key",
+        "type": "string"
+      },
+      {
+        "key": "value",
+        "value": "{{api_key}}",
+        "type": "string"
+      },
+      {
+        "key": "in",
+        "value": "header",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": ["{{base_url}}"],
+              "path": ["health"]
+            },
+            "description": "Returns server health status. No authentication required."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Tenants",
+      "description": "Tenant provisioning. These endpoints do **not** require `X-API-Key`. Restrict access in production.",
+      "auth": {
+        "type": "noauth"
+      },
+      "item": [
+        {
+          "name": "Create Tenant",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const json = pm.response.json();",
+                  "    pm.collectionVariables.set('tenant_id', json.tenant.id);",
+                  "    pm.collectionVariables.set('api_key', json.api_key);",
+                  "    pm.environment.set('tenant_id', json.tenant.id);",
+                  "    pm.environment.set('api_key', json.api_key);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"My Store\",\n  \"settings\": {\n    \"webhook_callback_url\": \"https://panel.example.com/webhooks/socialhub\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/tenants",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "tenants"]
+            },
+            "description": "Creates a new tenant and returns a one-time API key.\n\n**Response 201:** `{ tenant, api_key }` — save `api_key`; it is only shown once."
+          },
+          "response": []
+        },
+        {
+          "name": "List Tenants",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/tenants",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "tenants"]
+            },
+            "description": "Lists all tenants."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Tenant",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/tenants/{{tenant_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "tenants", "{{tenant_id}}"]
+            },
+            "description": "Get a single tenant by UUID."
+          },
+          "response": []
+        },
+        {
+          "name": "Regenerate API Key",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const json = pm.response.json();",
+                  "    pm.collectionVariables.set('api_key', json.api_key);",
+                  "    pm.environment.set('api_key', json.api_key);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/tenants/{{tenant_id}}/regenerate-key",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "tenants", "{{tenant_id}}", "regenerate-key"]
+            },
+            "description": "Rotates the tenant API key. Returns the new key once."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Connections",
+      "description": "Platform connections (Telegram, Bale, etc.). Requires `X-API-Key`.",
+      "item": [
+        {
+          "name": "Create Telegram Connection",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const json = pm.response.json();",
+                  "    pm.collectionVariables.set('connection_id', json.id);",
+                  "    pm.environment.set('connection_id', json.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"platform_type\": \"telegram\",\n  \"credentials\": {\n    \"bot_token\": \"123456789:ABCdefGHIjklMNOpqrsTUVwxyz\"\n  },\n  \"settings\": {\n    \"channel_id\": \"@your_channel\",\n    \"webhook_secret\": \"my-secret-token\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/connections",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "connections"]
+            },
+            "description": "Register a platform connection for the authenticated tenant.\n\n**Telegram credentials:** `{ \"bot_token\": \"...\" }`\n**Telegram settings:** `{ \"channel_id\": \"@channel\", \"webhook_secret\": \"...\" }`\n\nSupported `platform_type` values: `telegram`, `bale`, `instagram`, `whatsapp`, `twitter`."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Bale Connection",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const json = pm.response.json();",
+                  "    pm.collectionVariables.set('connection_id', json.id);",
+                  "    pm.environment.set('connection_id', json.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"platform_type\": \"bale\",\n  \"credentials\": {\n    \"bot_token\": \"123456789:AAHdqTcvCH1vGWJxfSeofSAs0K5PALDsaw\"\n  },\n  \"settings\": {\n    \"channel_id\": \"@your_bale_channel\",\n    \"webhook_secret\": \"my-secret-token\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/connections",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "connections"]
+            },
+            "description": "Register a Bale bot connection for the authenticated tenant.\n\n**Bale credentials:** `{ \"bot_token\": \"...\" }` (from Bale bot panel)\n**Bale settings:** `{ \"channel_id\": \"@channel\", \"webhook_secret\": \"...\" }`\n\nAPI base: `https://tapi.bale.ai/bot{token}`\nWebhook: `POST /api/v1/webhooks/bale/{connection_id}?secret=...`"
+          },
+          "response": []
+        },
+        {
+          "name": "List Connections",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/connections",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "connections"]
+            },
+            "description": "List all platform connections for the tenant."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Connection",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"settings\": {\n    \"channel_id\": \"@new_channel\"\n  },\n  \"is_active\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/connections/{{connection_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "connections", "{{connection_id}}"]
+            },
+            "description": "Partially update connection credentials, settings, or active status."
+          },
+          "response": []
+        },
+        {
+          "name": "Test Connection",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/connections/{{connection_id}}/test",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "connections", "{{connection_id}}", "test"]
+            },
+            "description": "Validates Telegram/Bale bot credentials by calling `getMe`.\n\n**Response:** `{ \"ok\": true, \"bot\": {...} }` or `{ \"ok\": false, \"error\": \"...\" }`"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Connection",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/connections/{{connection_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "connections", "{{connection_id}}"]
+            },
+            "description": "Removes a platform connection. Returns **204 No Content**."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Posts",
+      "description": "Publish, edit, delete, and query posts. Requires `X-API-Key`.\n\nPublish/edit/delete return **202 Accepted** — work is enqueued to the background worker.",
+      "item": [
+        {
+          "name": "Publish Product Post",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 202) {",
+                  "    const json = pm.response.json();",
+                  "    pm.collectionVariables.set('post_id', json.post_id);",
+                  "    pm.environment.set('post_id', json.post_id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"platforms\": [\"telegram\"],\n  \"content\": {\n    \"title\": \"محصول نمونه\",\n    \"body\": \"توضیحات محصول با HTML پشتیبانی می‌شود.\",\n    \"price\": 150000,\n    \"currency\": \"IRR\",\n    \"images\": [\"https://example.com/product.jpg\"],\n    \"metadata\": {}\n  },\n  \"buttons\": [\n    {\n      \"action\": \"buy\",\n      \"label\": \"خرید\",\n      \"payload\": { \"product_id\": 42 }\n    },\n    {\n      \"action\": \"url\",\n      \"label\": \"مشاهده در سایت\",\n      \"payload\": { \"url\": \"https://shop.example.com/products/42\" }\n    }\n  ],\n  \"external_ref\": \"product-42\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/posts/publish-product",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "posts", "publish-product"]
+            },
+            "description": "Publish a product post with optional inline buttons.\n\n**Button actions:** `buy`, `product_details`, `add_to_cart`, `specifications`, `contact`, `url`\n\n**external_ref:** optional idempotency key — duplicate returns **409**."
+          },
+          "response": []
+        },
+        {
+          "name": "Publish Normal Post",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 202) {",
+                  "    const json = pm.response.json();",
+                  "    pm.collectionVariables.set('post_id', json.post_id);",
+                  "    pm.environment.set('post_id', json.post_id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"platforms\": [\"telegram\"],\n  \"content\": {\n    \"title\": \"اعلان فروشگاه\",\n    \"body\": \"فروش ویژه آخر هفته!\",\n    \"images\": [],\n    \"metadata\": {}\n  },\n  \"external_ref\": \"announcement-001\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/posts/publish",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "posts", "publish"]
+            },
+            "description": "Publish a normal (non-product) post without buttons."
+          },
+          "response": []
+        },
+        {
+          "name": "Edit Post",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": {\n    \"title\": \"محصول به‌روز شده\",\n    \"body\": \"قیمت جدید اعمال شد.\",\n    \"price\": 120000,\n    \"currency\": \"IRR\",\n    \"images\": [\"https://example.com/product-v2.jpg\"],\n    \"metadata\": {}\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/posts/{{post_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "posts", "{{post_id}}"]
+            },
+            "description": "Enqueue an edit job for an existing post on all connected platforms."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Post",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/posts/{{post_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "posts", "{{post_id}}"]
+            },
+            "description": "Enqueue deletion from all platforms.\n\n**Response 202:** `{ \"detail\": \"Delete enqueued\", \"publication_count\": N }`"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Post Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/posts/{{post_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "posts", "{{post_id}}"]
+            },
+            "description": "Get post status and per-platform publication statuses."
+          },
+          "response": []
+        },
+        {
+          "name": "List Posts",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/posts?limit=50&offset=0",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "posts"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "50",
+                  "description": "Max items (default 50)"
+                },
+                {
+                  "key": "offset",
+                  "value": "0",
+                  "description": "Pagination offset"
+                }
+              ]
+            },
+            "description": "List posts for the authenticated tenant."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Webhooks",
+      "description": "Inbound webhooks from external platforms. Called by Telegram/Bale — not by your client app.",
+      "item": [
+        {
+          "name": "Telegram Webhook (simulation)",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Telegram-Bot-Api-Secret-Token",
+                "value": "{{webhook_secret}}",
+                "description": "Must match connection.settings.webhook_secret"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"update_id\": 100000001,\n  \"callback_query\": {\n    \"id\": \"cq-123\",\n    \"from\": { \"id\": 123456789, \"first_name\": \"Test\" },\n    \"message\": {\n      \"message_id\": 42,\n      \"chat\": { \"id\": -1001234567890, \"type\": \"channel\" },\n      \"date\": 1700000000,\n      \"text\": \"sample\"\n    },\n    \"data\": \"sh:testshrt\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/webhooks/telegram/{{connection_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "webhooks", "telegram", "{{connection_id}}"]
+            },
+            "description": "Telegram sends updates here. Used for button callbacks.\n\nRegister with Telegram:\n`POST https://api.telegram.org/bot<TOKEN>/setWebhook`\n\nBody: `{ \"url\": \"{{base_url}}/api/v1/webhooks/telegram/{{connection_id}}\", \"secret_token\": \"{{webhook_secret}}\" }`"
+          },
+          "response": []
+        },
+        {
+          "name": "Bale Webhook (simulation)",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Webhook-Secret",
+                "value": "{{webhook_secret}}",
+                "description": "Must match connection.settings.webhook_secret (or use ?secret= query)"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"update_id\": 100000001,\n  \"callback_query\": {\n    \"id\": \"cq-123\",\n    \"from\": { \"id\": 123456789, \"first_name\": \"Test\" },\n    \"message\": {\n      \"message_id\": 42,\n      \"chat\": { \"id\": -1001234567890, \"type\": \"channel\" },\n      \"date\": 1700000000,\n      \"text\": \"sample\"\n    },\n    \"data\": \"sh:testshrt\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/webhooks/bale/{{connection_id}}?secret={{webhook_secret}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "webhooks", "bale", "{{connection_id}}"],
+              "query": [
+                {
+                  "key": "secret",
+                  "value": "{{webhook_secret}}",
+                  "description": "Optional when X-Webhook-Secret header is set"
+                }
+              ]
+            },
+            "description": "Bale sends updates here. Used for button callbacks.\n\nRegister with Bale:\n`POST https://tapi.bale.ai/bot<TOKEN>/setWebhook`\n\nBody: `{ \"url\": \"{{base_url}}/api/v1/webhooks/bale/{{connection_id}}?secret={{webhook_secret}}\" }`"
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

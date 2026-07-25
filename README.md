@@ -20,6 +20,23 @@ Multi-Tenant Social Publishing & Integration Platform.
 | PostgreSQL | 16+     | `brew install postgresql@16` |
 | Redis      | 7+      | `brew install redis`      |
 
+### Quick start (one command)
+
+```bash
+./scripts/dev_up.sh
+```
+
+This script will:
+- create `.venv` and install dependencies
+- create `.env` if missing (with `ENCRYPTION_KEY`)
+- create the PostgreSQL database if it doesn't exist
+- run migrations and seed demo data
+- start the API server and keep the Arq worker running
+
+Credentials are saved to `.dev-seed.json` (gitignored).
+
+### Manual setup
+
 ### 1. Create and activate virtual environment
 
 ```bash
@@ -54,6 +71,13 @@ uvicorn social_hub.main:app --reload --port 8000
 ```bash
 arq social_hub.infrastructure.queue.worker.WorkerSettings
 ```
+
+## API Documentation
+
+- **Full guide:** [docs/API.md](docs/API.md)
+- **Postman collection:** [docs/postman/SocialHub.postman_collection.json](docs/postman/SocialHub.postman_collection.json)
+- **Postman environment:** [docs/postman/SocialHub.postman_environment.json](docs/postman/SocialHub.postman_environment.json)
+- **Interactive docs:** `http://localhost:8000/docs` (Swagger UI)
 
 ## API Overview
 

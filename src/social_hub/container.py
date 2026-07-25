@@ -7,6 +7,7 @@ from social_hub.application.services.capability_resolver import CapabilityResolv
 from social_hub.config import Settings
 from social_hub.infrastructure.db.session import create_session_factory
 from social_hub.infrastructure.encryption.credential_encryptor import FernetEncryptor
+from social_hub.infrastructure.platforms.bale.driver import BaleDriver
 from social_hub.infrastructure.platforms.registry import DriverRegistry
 from social_hub.infrastructure.platforms.telegram.driver import TelegramDriver
 
@@ -30,6 +31,7 @@ async def build_container(settings: Settings) -> Container:
 
     driver_registry = DriverRegistry()
     driver_registry.register(TelegramDriver())
+    driver_registry.register(BaleDriver())
 
     capability_resolver = CapabilityResolver()
 

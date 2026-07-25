@@ -1,7 +1,7 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, status
 
 from social_hub.api.deps import TenantContextDep, get_connection_service
 from social_hub.api.schemas.connections import (
@@ -91,7 +91,6 @@ async def delete_connection(
 async def test_connection(
     connection_id: UUID,
     tenant_ctx: TenantContextDep,
-    request: Request,
     connection_service: Annotated[ConnectionService, Depends(get_connection_service)],
 ):
     try:
@@ -99,18 +98,24 @@ async def test_connection(
     except ConnectionNotFoundError:
         raise HTTPException(status_code=404, detail="Connection not found")
 
-    container = request.app.state.container
     try:
-        driver = container.driver_registry.get(conn.platform_type)
         credentials = connection_service.decrypt_credentials(conn)
-        from social_hub.infrastructure.platforms.base import ConnectionContext
-        ctx = ConnectionContext(connection=conn, credentials=credentials)
-        from social_hub.infrastructure.platforms.telegram.client import TelegramClient
-        if conn.platform_type == "telegram":
-            client = TelegramClient(credentials["bot_token"])
-            me = await client.get_me()
+        bot_token = credentials.get("bot_token")
+        if not bot_token:
+            return {"ok": False, "error": "credentials.bot_token is required"}
+
+        if conn.platform_type == PlatformType.TELEGRAM:
+            from social_hub.infrastructure.platforms.telegram.client import TelegramClient
+
+            me = await TelegramClient(bot_token).get_me()
             return {"ok": True, "bot": me}
+
+        if conn.platform_type == PlatformType.BALE:
+            from social_hub.infrastructure.platforms.bale.client import BaleClient
+
+            me = await BaleClient(bot_token).get_me()
+            return {"ok": True, "bot": me}
+
+        return {"ok": True}
     except Exception as exc:
         return {"ok": False, "error": str(exc)}
-
-    return {"ok": True}

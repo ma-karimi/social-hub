@@ -218,7 +218,7 @@
               "host": ["{{base_url}}"],
               "path": ["api", "v1", "connections"]
             },
-            "description": "Register a platform connection for the authenticated tenant.\n\n**Telegram credentials:** `{ \"bot_token\": \"...\" }`\n**Telegram settings:** `{ \"channel_id\": \"@channel\", \"webhook_secret\": \"...\" }`\n\nSupported `platform_type` values: `telegram`, `bale`, `instagram`, `whatsapp`, `twitter`."
+            "description": "Register a platform connection for the authenticated tenant.\n\n**Telegram credentials:** `{ \"bot_token\": \"...\" }`\n**Telegram settings:** `{ \"channel_id\": \"@channel\", \"webhook_secret\": \"...\" }`\n\nSupported `platform_type` values: `telegram`, `bale`, `eitaa`, `instagram`, `whatsapp`, `twitter`."
           },
           "response": []
         },
@@ -257,6 +257,44 @@
               "path": ["api", "v1", "connections"]
             },
             "description": "Register a Bale bot connection for the authenticated tenant.\n\n**Bale credentials:** `{ \"bot_token\": \"...\" }` (from Bale bot panel)\n**Bale settings:** `{ \"channel_id\": \"@channel\", \"webhook_secret\": \"...\" }`\n\nAPI base: `https://tapi.bale.ai/bot{token}`\nWebhook: `POST /api/v1/webhooks/bale/{connection_id}?secret=...`"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Eitaa Connection",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const json = pm.response.json();",
+                  "    pm.collectionVariables.set('connection_id', json.id);",
+                  "    pm.environment.set('connection_id', json.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"platform_type\": \"eitaa\",\n  \"credentials\": {\n    \"bot_token\": \"bot511500:xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx\"\n  },\n  \"settings\": {\n    \"channel_id\": \"your_eitaa_channel\",\n    \"title\": \"عنوان پنل\",\n    \"pin\": false,\n    \"disable_notification\": false\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/connections",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "connections"]
+            },
+            "description": "Register an Eitaa (Eitaayar) connection for channel publishing.\n\n**Eitaa credentials:** `{ \"bot_token\": \"...\" }` (from eitaayar.ir panel)\n**Eitaa settings:** `{ \"channel_id\": \"channel_username_or_id\" }` — username without `@`\n\nOptional settings: `title`, `pin`, `disable_notification`, `view_count_for_delete`\n\nAPI base: `https://eitaayar.ir/api/{token}/{method}`\nSupports publish only (sendMessage / sendFile). No edit, delete, buttons, or inbound webhooks."
           },
           "response": []
         },

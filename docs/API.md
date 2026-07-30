@@ -136,7 +136,7 @@ Base URL: `{base_url}/api/v1`
 | DELETE | `/connections/{connection_id}` | X-API-Key | 204 | حذف |
 | POST | `/connections/{connection_id}/test` | X-API-Key | 200 | تست اتصال |
 
-**پلتفرم‌های پشتیبانی‌شده:** `telegram`, `bale`, `instagram`, `whatsapp`, `twitter`
+**پلتفرم‌های پشتیبانی‌شده:** `telegram`, `bale`, `eitaa`, `instagram`, `whatsapp`, `twitter`
 
 **Create Telegram Connection — Request:**
 ```json
@@ -179,6 +179,33 @@ Base URL: `{base_url}/api/v1`
 | `settings.webhook_secret` | توصیه‌شده | برای verify؛ با هدر `X-Webhook-Secret` یا `?secret=` |
 
 > API بله روی `https://tapi.bale.ai/bot{token}` است و با Bot API تلگرام سازگار است. هر tenant فقط یک connection برای هر `platform_type` می‌تواند داشته باشد.
+
+**Create Eitaa Connection — Request:**
+```json
+{
+  "platform_type": "eitaa",
+  "credentials": {
+    "bot_token": "bot511500:xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+  },
+  "settings": {
+    "channel_id": "your_eitaa_channel",
+    "title": "عنوان پنل ایتایار",
+    "pin": false,
+    "disable_notification": false
+  }
+}
+```
+
+| فیلد | الزامی | توضیح |
+|------|--------|-------|
+| `credentials.bot_token` | بله | توکن ایتایار (از پنل [eitaayar.ir](https://eitaayar.ir)) |
+| `settings.channel_id` | بله | شناسهٔ عددی کانال یا username **بدون** `@` |
+| `settings.title` | خیر | عنوان مطلب فقط برای پنل ایتایار |
+| `settings.pin` | خیر | سنجاق کردن پیام پس از ارسال |
+| `settings.disable_notification` | خیر | ارسال بدون نوتیفیکیشن |
+| `settings.view_count_for_delete` | خیر | حذف خودکار پس از N بازدید |
+
+> API ایتا از طریق ایتایار روی `https://eitaayar.ir/api/{token}/{method}` کار می‌کند و فقط انتشار (`sendMessage` / `sendFile`) را پشتیبانی می‌کند — ویرایش، حذف، دکمهٔ inline و webhook ورودی ندارد. کاربر [`@sender`](https://eitaa.com/sender) باید مدیر کانال/گروه باشد.
 
 **Test Connection — Response:**
 ```json
@@ -342,6 +369,16 @@ curl -s -X POST http://localhost:8000/api/v1/connections \
     "platform_type": "bale",
     "credentials": {"bot_token": "YOUR_BALE_BOT_TOKEN"},
     "settings": {"channel_id": "@your_bale_channel", "webhook_secret": "secret123"}
+  }' | jq .
+
+# 2c. اتصال ایتا (ایتایار)
+curl -s -X POST http://localhost:8000/api/v1/connections \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: $API_KEY" \
+  -d '{
+    "platform_type": "eitaa",
+    "credentials": {"bot_token": "YOUR_EITAAYAR_TOKEN"},
+    "settings": {"channel_id": "your_eitaa_channel"}
   }' | jq .
 
 # 3. انتشار محصول

@@ -21,6 +21,17 @@ def test_instagram_has_no_edit():
     assert caps.supports_buttons is False
 
 
+def test_eitaa_publish_only():
+    resolver = CapabilityResolver()
+    caps = resolver.resolve(PlatformType.EITAA)
+    assert caps.can_publish is True
+    assert caps.can_edit is False
+    assert caps.can_delete is False
+    assert caps.supports_buttons is False
+    assert caps.supports_callback is False
+    assert caps.supports_media_album is False
+
+
 def test_unknown_platform_returns_defaults():
     resolver = CapabilityResolver()
     from social_hub.domain.value_objects.capabilities import PlatformCapabilities

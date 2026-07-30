@@ -116,6 +116,12 @@ async def test_connection(
             me = await BaleClient(bot_token).get_me()
             return {"ok": True, "bot": me}
 
+        if conn.platform_type == PlatformType.EITAA:
+            from social_hub.infrastructure.platforms.eitaa.client import EitaaClient
+
+            me = await EitaaClient(bot_token).get_me()
+            return {"ok": True, "bot": me}
+
         return {"ok": True}
     except Exception as exc:
         return {"ok": False, "error": str(exc)}

@@ -22,6 +22,16 @@ PLATFORM_CAPABILITIES: dict[PlatformType, PlatformCapabilities] = {
         max_buttons_per_row=3,
         max_callback_data_bytes=64,
     ),
+    PlatformType.EITAA: PlatformCapabilities(
+        can_publish=True,
+        can_edit=False,
+        can_delete=False,
+        supports_buttons=False,
+        supports_callback=False,
+        supports_media_album=False,
+        max_buttons_per_row=0,
+        max_callback_data_bytes=0,
+    ),
     PlatformType.INSTAGRAM: PlatformCapabilities(
         can_publish=True,
         can_edit=False,

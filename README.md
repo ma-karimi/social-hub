@@ -95,6 +95,9 @@ Base URL: `/api/v1`
 | PATCH | `/connections/{id}` | Update connection |
 | DELETE | `/connections/{id}` | Remove connection |
 | POST | `/webhooks/telegram/{connection_id}` | Telegram webhook ingress |
+| POST | `/webhooks/bale/{connection_id}` | Bale webhook ingress |
+
+> Eitaa (Eitaayar) is publish-only and has no inbound webhook.
 
 ## Adding a New Platform
 

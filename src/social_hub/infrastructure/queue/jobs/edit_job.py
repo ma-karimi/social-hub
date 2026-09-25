@@ -8,18 +8,27 @@ from social_hub.domain.entities.post import PostContent
 from social_hub.domain.value_objects.media_ref import MediaRef
 from social_hub.domain.value_objects.platform_type import PlatformType
 from social_hub.domain.value_objects.publication_status import PublicationStatus
-from social_hub.infrastructure.db.models.platform_connection import PlatformConnectionModel
 from social_hub.infrastructure.db.models.post import PostModel
+from social_hub.infrastructure.db.models.social_account import SocialAccountModel
 from social_hub.infrastructure.db.repositories.button_repo import SQLAlchemyButtonRepo
 from social_hub.infrastructure.db.repositories.platform_message_repo import (
     SQLAlchemyPlatformMessageRepo,
 )
 from social_hub.infrastructure.db.repositories.publication_repo import SQLAlchemyPublicationRepo
+from social_hub.infrastructure.platforms.bale.driver import BaleDriver
 from social_hub.infrastructure.platforms.base import ConnectionContext
 from social_hub.infrastructure.platforms.dto.outgoing_post import OutgoingPost
+from social_hub.infrastructure.platforms.eitaa.driver import EitaaDriver
 from social_hub.infrastructure.platforms.telegram.button_encoder import buttons_to_outgoing
+from social_hub.infrastructure.platforms.telegram.driver import TelegramDriver
 
 logger = structlog.get_logger(__name__)
+
+_DRIVERS = {
+    PlatformType.TELEGRAM: TelegramDriver(),
+    PlatformType.BALE: BaleDriver(),
+    PlatformType.EITAA: EitaaDriver(),
+}
 
 
 async def edit_job(ctx, post_id: str) -> None:
@@ -45,48 +54,54 @@ async def edit_job(ctx, post_id: str) -> None:
                 if pub.status != PublicationStatus.PUBLISHED:
                     continue
 
-                conn_model = await session.get(PlatformConnectionModel, pub.connection_id)
-                if conn_model is None:
+                account_model = await session.get(SocialAccountModel, pub.account_id)
+                if account_model is None:
                     continue
 
                 messages = await msg_repo.list_by_publication(pub.id)
                 if not messages:
                     continue
 
+                platform = PlatformType(account_model.platform)
                 connection = PlatformConnection(
-                    id=conn_model.id,
-                    tenant_id=conn_model.tenant_id,
-                    platform_type=PlatformType(conn_model.platform_type),
-                    credentials_encrypted=bytes(conn_model.credentials_encrypted),
-                    settings=conn_model.settings or {},
-                    is_active=conn_model.is_active,
+                    id=account_model.id,
+                    tenant_id=account_model.tenant_id,
+                    platform_type=platform,
+                    credentials_encrypted=bytes(account_model.credentials_encrypted or b""),
+                    settings=account_model.settings or {},
+                    is_active=account_model.is_active,
                 )
                 credentials = container.encryptor.decrypt(connection.credentials_encrypted)
                 conn_ctx = ConnectionContext(connection=connection, credentials=credentials)
-                driver = container.driver_registry.get(connection.platform_type)
+                driver = _DRIVERS.get(platform)
+                if driver is None:
+                    continue
 
-                caps = container.capability_resolver.resolve(connection.platform_type)
-                if not caps.can_edit:
-                    logger.info("edit_skipped_no_capability", platform=connection.platform_type)
+                from social_hub.application.adapters.capabilities import SOCIAL_CAPABILITIES
+
+                caps = SOCIAL_CAPABILITIES.get(platform)
+                if caps is None or not caps.can_edit:
+                    logger.info("edit_skipped_no_capability", platform=platform)
                     continue
 
                 media = [MediaRef(url=u, sort_order=i) for i, u in enumerate(content.images)]
                 button_rows = buttons_to_outgoing(buttons)
                 from social_hub.infrastructure.queue.jobs.publish_job import _format_post_text
+
                 text = _format_post_text(content, post_model.post_type)
                 outgoing = OutgoingPost(text=text, media=media, buttons=button_rows)
 
                 for msg in messages:
                     result = await driver.edit(
                         conn_ctx,
-                        platform_message_id=msg.platform_message_id,
-                        chat_id=msg.chat_id,
-                        outgoing=outgoing,
+                        msg.platform_message_id,
+                        msg.chat_id,
+                        outgoing,
                     )
                     if not result.success:
-                        logger.warning(
-                            "edit_job_failed",
-                            message_id=msg.platform_message_id,
+                        logger.error(
+                            "edit_failed",
+                            publication_id=str(pub.id),
                             error=result.error_message,
                         )
 

@@ -1,5 +1,5 @@
 """
-publish_job: loads a Publication, builds OutgoingPost, calls the driver, saves the result.
+publish_job: loads a Publication, builds OutgoingPost, calls the driver via social account.
 """
 from datetime import datetime, timezone
 from uuid import UUID
@@ -12,8 +12,8 @@ from social_hub.domain.entities.post import PostContent
 from social_hub.domain.value_objects.media_ref import MediaRef
 from social_hub.domain.value_objects.platform_type import PlatformType
 from social_hub.domain.value_objects.publication_status import PublicationStatus
-from social_hub.infrastructure.db.models.platform_connection import PlatformConnectionModel
 from social_hub.infrastructure.db.models.post import PostModel
+from social_hub.infrastructure.db.models.social_account import SocialAccountModel
 from social_hub.infrastructure.db.repositories.button_repo import SQLAlchemyButtonRepo
 from social_hub.infrastructure.db.repositories.platform_message_repo import (
     SQLAlchemyPlatformMessageRepo,
@@ -27,9 +27,10 @@ logger = structlog.get_logger(__name__)
 
 
 async def publish_job(ctx, publication_id: str, connection_id: str) -> None:
+    """connection_id is the social_accounts.id (legacy parameter name)."""
     container = ctx["container"]
     pub_id = UUID(publication_id)
-    conn_id = UUID(connection_id)
+    account_id = UUID(connection_id)
 
     async with container.session_factory() as session:
         async with session.begin():
@@ -50,11 +51,11 @@ async def publish_job(ctx, publication_id: str, connection_id: str) -> None:
             await pub_repo.update(publication)
 
             post_model = await session.get(PostModel, publication.post_id)
-            conn_model = await session.get(PlatformConnectionModel, conn_id)
+            account_model = await session.get(SocialAccountModel, account_id)
 
-            if post_model is None or conn_model is None:
+            if post_model is None or account_model is None:
                 publication.status = PublicationStatus.FAILED
-                publication.error_message = "Post or connection not found"
+                publication.error_message = "Post or account not found"
                 await pub_repo.update(publication)
                 return
 
@@ -62,17 +63,32 @@ async def publish_job(ctx, publication_id: str, connection_id: str) -> None:
             buttons = await btn_repo.list_by_post(publication.post_id)
 
             connection = PlatformConnection(
-                id=conn_model.id,
-                tenant_id=conn_model.tenant_id,
-                platform_type=PlatformType(conn_model.platform_type),
-                credentials_encrypted=bytes(conn_model.credentials_encrypted),
-                settings=conn_model.settings or {},
-                is_active=conn_model.is_active,
+                id=account_model.id,
+                tenant_id=account_model.tenant_id,
+                platform_type=PlatformType(account_model.platform),
+                credentials_encrypted=bytes(account_model.credentials_encrypted or b""),
+                settings=account_model.settings or {},
+                is_active=account_model.is_active,
             )
             credentials = container.encryptor.decrypt(connection.credentials_encrypted)
             conn_ctx = ConnectionContext(connection=connection, credentials=credentials)
 
-            driver = container.driver_registry.get(connection.platform_type)
+            # Resolve driver from platform type
+            from social_hub.infrastructure.platforms.telegram.driver import TelegramDriver
+            from social_hub.infrastructure.platforms.bale.driver import BaleDriver
+            from social_hub.infrastructure.platforms.eitaa.driver import EitaaDriver
+
+            drivers = {
+                PlatformType.TELEGRAM: TelegramDriver(),
+                PlatformType.BALE: BaleDriver(),
+                PlatformType.EITAA: EitaaDriver(),
+            }
+            driver = drivers.get(connection.platform_type)
+            if driver is None:
+                publication.status = PublicationStatus.FAILED
+                publication.error_message = "No driver for platform"
+                await pub_repo.update(publication)
+                return
 
             media = [MediaRef(url=url, sort_order=i) for i, url in enumerate(content.images)]
             button_rows = buttons_to_outgoing(buttons)

@@ -50,7 +50,7 @@ def make_service(
     default_pub = Publication(
         id=uuid4(),
         post_id=default_post.id,
-        connection_id=conn_id,
+        account_id=conn_id,
         status=PublicationStatus.PENDING,
     )
     pub_repo.create = AsyncMock(return_value=created_publication or default_pub)

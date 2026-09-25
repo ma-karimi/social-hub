@@ -125,7 +125,7 @@ class PublishService:
             if buttons and not caps.supports_buttons:
                 warnings.append(f"{platform}: buttons not supported and will be stripped")
 
-            pub = Publication.create(post_id=post.id, connection_id=conn.id)
+            pub = Publication.create(post_id=post.id, account_id=conn.id)
             pub = await self._publication_repo.create(pub)
             publications.append(pub)
 
@@ -141,7 +141,8 @@ class PublishService:
                 {
                     "id": str(p.id),
                     "status": p.status,
-                    "connection_id": str(p.connection_id),
+                    "connection_id": str(p.account_id),
+                    "account_id": str(p.account_id),
                 }
                 for p in publications
             ],

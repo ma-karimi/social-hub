@@ -77,3 +77,12 @@ class SQLAlchemyPostRepo:
         )
         results = await self._session.scalars(stmt)
         return [_to_entity(m) for m in results]
+
+    async def delete(self, tenant_id: UUID, post_id: UUID) -> None:
+        from sqlalchemy import delete as sa_delete
+
+        stmt = sa_delete(PostModel).where(
+            PostModel.id == post_id,
+            PostModel.tenant_id == tenant_id,
+        )
+        await self._session.execute(stmt)

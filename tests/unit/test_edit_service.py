@@ -34,7 +34,7 @@ def make_service(existing_post=None, publications=None):
         Publication(
             id=uuid4(),
             post_id=post_id,
-            connection_id=conn_id,
+            account_id=conn_id,
             status=PublicationStatus.PUBLISHED,
         )
     ]

@@ -49,7 +49,6 @@ async def process_interaction_job(ctx, payload: dict) -> None:
                 tenant_repo=SQLAlchemyTenantRepo(session),
                 button_repo=SQLAlchemyButtonRepo(session),
                 interaction_event_repo=SQLAlchemyInteractionEventRepo(session),
-                driver_registry=container.driver_registry,
             )
             await service.handle(incoming=incoming, connection_ctx=conn_ctx)
 

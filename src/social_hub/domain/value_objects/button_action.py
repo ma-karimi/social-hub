@@ -8,3 +8,4 @@ class ButtonAction(StrEnum):
     SPECIFICATIONS = "specifications"
     CONTACT = "contact"
     URL = "url"
+    CALLBACK = "callback"

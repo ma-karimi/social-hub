@@ -8,11 +8,17 @@ from social_hub.domain.repositories.button_repo import ButtonRepository
 from social_hub.domain.repositories.interaction_event_repo import InteractionEventRepository
 from social_hub.domain.repositories.tenant_repo import TenantRepository
 from social_hub.domain.value_objects.platform_type import PlatformType
+from social_hub.infrastructure.platforms.bale.driver import BaleDriver
 from social_hub.infrastructure.platforms.base import ConnectionContext
 from social_hub.infrastructure.platforms.dto.incoming_event import IncomingEvent
-from social_hub.infrastructure.platforms.registry import DriverRegistry
+from social_hub.infrastructure.platforms.telegram.driver import TelegramDriver
 
 logger = structlog.get_logger(__name__)
+
+_DRIVERS = {
+    PlatformType.TELEGRAM: TelegramDriver(),
+    PlatformType.BALE: BaleDriver(),
+}
 
 
 class InteractionService:
@@ -21,7 +27,7 @@ class InteractionService:
         tenant_repo: TenantRepository,
         button_repo: ButtonRepository,
         interaction_event_repo: InteractionEventRepository,
-        driver_registry: DriverRegistry,
+        driver_registry=None,
     ) -> None:
         self._tenant_repo = tenant_repo
         self._button_repo = button_repo
@@ -75,13 +81,19 @@ class InteractionService:
         # Acknowledge callback to remove Telegram spinner
         if incoming.callback_query_id:
             try:
-                driver = self._driver_registry.get(PlatformType(platform_type))
-                await driver.reply_to_interaction(
-                    ctx=connection_ctx,
-                    chat_id=incoming.reply_chat_id or "",
-                    text="",
-                    callback_query_id=incoming.callback_query_id,
-                )
+                platform = PlatformType(platform_type)
+                driver = None
+                if self._driver_registry is not None:
+                    driver = self._driver_registry.get(platform)
+                else:
+                    driver = _DRIVERS.get(platform)
+                if driver:
+                    await driver.reply_to_interaction(
+                        ctx=connection_ctx,
+                        chat_id=incoming.reply_chat_id or "",
+                        text="",
+                        callback_query_id=incoming.callback_query_id,
+                    )
             except Exception:
                 logger.warning("callback_ack_failed", event_id=str(event.id))
 

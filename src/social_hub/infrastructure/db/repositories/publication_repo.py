@@ -12,7 +12,7 @@ def _to_entity(m: PublicationModel) -> Publication:
     return Publication(
         id=m.id,
         post_id=m.post_id,
-        connection_id=m.connection_id,
+        account_id=m.account_id,
         status=PublicationStatus(m.status),
         error_message=m.error_message,
         platform_metadata=m.platform_metadata or {},
@@ -29,7 +29,7 @@ class SQLAlchemyPublicationRepo:
         model = PublicationModel(
             id=publication.id,
             post_id=publication.post_id,
-            connection_id=publication.connection_id,
+            account_id=publication.account_id,
             status=publication.status,
             error_message=publication.error_message,
             platform_metadata=publication.platform_metadata,
@@ -60,12 +60,18 @@ class SQLAlchemyPublicationRepo:
         await self._session.refresh(model)
         return _to_entity(model)
 
-    async def get_by_post_and_connection(
-        self, post_id: UUID, connection_id: UUID
+    async def get_by_post_and_account(
+        self, post_id: UUID, account_id: UUID
     ) -> Publication | None:
         stmt = select(PublicationModel).where(
             PublicationModel.post_id == post_id,
-            PublicationModel.connection_id == connection_id,
+            PublicationModel.account_id == account_id,
         )
         result = await self._session.scalar(stmt)
         return _to_entity(result) if result else None
+
+    # Back-compat
+    async def get_by_post_and_connection(
+        self, post_id: UUID, connection_id: UUID
+    ) -> Publication | None:
+        return await self.get_by_post_and_account(post_id, connection_id)

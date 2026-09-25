@@ -53,11 +53,11 @@ def make_post(tenant_id=None, **kwargs) -> Post:
     return Post(**{**defaults, **kwargs})
 
 
-def make_publication(post_id=None, connection_id=None, **kwargs) -> Publication:
+def make_publication(post_id=None, connection_id=None, account_id=None, **kwargs) -> Publication:
     defaults = dict(
         id=uuid.uuid4(),
         post_id=post_id or uuid.uuid4(),
-        connection_id=connection_id or uuid.uuid4(),
+        account_id=account_id or connection_id or uuid.uuid4(),
         status=PublicationStatus.PENDING,
     )
     return Publication(**{**defaults, **kwargs})

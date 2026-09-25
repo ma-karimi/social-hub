@@ -90,6 +90,17 @@ Events are forwarded to tenant `settings.webhook_callback_url` when set.
 
 ## Docs
 
-- English Swagger: `/docs` (`/openapi.json`)
-- Persian Swagger: `/docs/fa` (`/openapi.fa.json`)
-- Errors: `{ "error_code": "...", "message": "..." }` switched by `Accept-Language` (default English)
+Swagger UI and OpenAPI are **live HTTP routes on the running API server** (not folders under `docs/`):
+
+| What | URL (server running) | Static snapshot on disk |
+|------|----------------------|-------------------------|
+| English Swagger UI | `GET /docs` | — |
+| English OpenAPI | `GET /openapi.json` | [`docs/openapi/openapi.en.json`](openapi/openapi.en.json) |
+| Persian Swagger UI | `GET /docs/fa` | — |
+| Persian OpenAPI | `GET /openapi.fa.json` | [`docs/openapi/openapi.fa.json`](openapi/openapi.fa.json) |
+
+Example with local server: `http://localhost:8000/docs` and `http://localhost:8000/docs/fa`.
+
+Postman: import [`docs/postman/SocialHub.postman_collection.json`](postman/SocialHub.postman_collection.json) + [`SocialHub.postman_environment.json`](postman/SocialHub.postman_environment.json).
+
+Errors: `{ "error_code": "...", "message": "..." }` switched by `Accept-Language` (default English).

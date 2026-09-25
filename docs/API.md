@@ -13,7 +13,9 @@ alembic upgrade head
 uvicorn social_hub.main:app --reload --port 8000
 ```
 
-Docs: `/docs` (EN), `/docs/fa` (FA)
+Docs: `/docs` (EN), `/docs/fa` (FA) — live routes on the running server.
+Static OpenAPI snapshots: `docs/openapi/openapi.en.json`, `docs/openapi/openapi.fa.json`.
+Postman: `docs/postman/SocialHub.postman_collection.json` + `SocialHub.postman_environment.json`.
 
 ## Auth
 

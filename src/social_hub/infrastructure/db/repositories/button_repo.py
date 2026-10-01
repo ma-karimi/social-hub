@@ -28,7 +28,7 @@ class SQLAlchemyButtonRepo:
     async def create_many(self, buttons: list[Button]) -> list[Button]:
         models = []
         for btn in buttons:
-            short_id = encode_short_id(btn.id)
+            short_id = btn.short_id or encode_short_id(btn.id)
             model = ButtonModel(
                 id=btn.id,
                 post_id=btn.post_id,

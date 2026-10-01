@@ -1,4 +1,4 @@
-from uuid import UUID, uuid4
+from uuid import UUID
 
 from social_hub.application.adapters.base import CreatePostRequest, MediaItem, SocialPostResult
 from social_hub.application.adapters.registry import PlatformAdapterRegistry
@@ -105,6 +105,7 @@ class SocialPostService:
             post.status = "draft"
         post = await self._posts.create(post)
 
+        button_entities: list[Button] = []
         for i, b in enumerate(buttons or []):
             btn = Button.create(
                 post_id=post.id,
@@ -113,8 +114,11 @@ class SocialPostService:
                 payload=b.get("payload") or {},
                 sort_order=i,
             )
-            btn.short_id = b.get("short_id") or uuid4().hex[:8]
-            await self._buttons.create(btn)
+            if b.get("short_id"):
+                btn.short_id = b["short_id"]
+            button_entities.append(btn)
+        if button_entities:
+            await self._buttons.create_many(button_entities)
 
         req = CreatePostRequest(
             content=content,

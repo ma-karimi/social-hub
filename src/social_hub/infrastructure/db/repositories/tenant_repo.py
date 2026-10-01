@@ -48,6 +48,7 @@ class SQLAlchemyTenantRepo:
         if model is None:
             raise ValueError(f"Tenant {tenant.id} not found")
         model.name = tenant.name
+        model.api_key_hash = tenant.api_key_hash
         model.is_active = tenant.is_active
         model.settings = tenant.settings
         await self._session.flush()
